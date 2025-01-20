@@ -214,8 +214,17 @@ jobs:
           asset_path: ui/flutter/build/macos/Build/Products/Release/dist/*
           overwrite: true
   build-linux:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            appimage-arch: x86_64
+            deb-arch: amd64
+          - os: ubuntu-24.04-arm
+            appimage-arch: aarch64
+            deb-arch: arm64
     if: ${{ github.event.inputs.platform == 'all' || github.event.inputs.platform == 'linux' }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     needs: [get-release]
     steps:
       - uses: actions/checkout@v3
@@ -231,7 +240,7 @@ jobs:
           sudo apt install -y ninja-build libgtk-3-dev libayatana-appindicator3-1 libayatana-appindicator3-dev
           # appimage build dependencies
           sudo apt install -y libfuse2 locate
-          wget -O appimagetool "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
+          wget -O appimagetool "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-${{ matrix.appimage-arch }}.AppImage"
           chmod +x appimagetool
           sudo mv appimagetool /usr/local/bin/
       - name: Build
@@ -243,8 +252,8 @@ jobs:
           dart pub global activate -sgit https://github.com/GopeedLab/flutter_distributor.git --git-path packages/flutter_distributor
           flutter_distributor package --platform linux --targets appimage,deb
           cd dist/*
-          mv gopeed-*-linux.AppImage Gopeed-v${VERSION}-linux-x86_64.AppImage
-          mv gopeed-*-linux.deb Gopeed-v${VERSION}-linux-amd64.deb
+          mv gopeed-*-linux.AppImage Gopeed-v${VERSION}-linux-${{ matrix.appimage-arch }}.AppImage
+          mv gopeed-*-linux.deb Gopeed-v${VERSION}-linux-${{ matrix.deb-arch }}.deb
       - name: Upload
         uses: shogo82148/actions-upload-release-asset@v1
         with:
